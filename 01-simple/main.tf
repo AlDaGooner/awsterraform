@@ -14,10 +14,10 @@ variable "port_ssh" {
     default = 22
 }
 
-resource "aws_instance" "simple" {
-    ami = "ami-05f65755d328aa341"
+resource "aws_launch_configuration" "example" {
+    image_id = "ami-05f65755d328aa341"
     instance_type = "t2.micro"
-    vpc_security_group_ids = [ aws_security_group.instance.id ]
+    security_groups = [ aws_security_group.instance.id ]
     key_name = "win10-key"
 
     user_data = <<-EOF
@@ -26,8 +26,22 @@ resource "aws_instance" "simple" {
                 nohup busybox httpd -f -p ${var.port_web} &
                 EOF
     
-    tags = {
-        Name = "Simple terraform example"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_autoscaling_group" "example" {
+    launch_configuration = aws_launch_configuration.example.name
+    vpc_zone_identifier = data.aws_subnet_ids.default.ids
+
+    min_size = 2
+    max_size = 10
+
+    tag {
+        key                 = "Name"
+        value               = "terraform-asg-example"
+        propagate_at_launch = true
     }
 }
 
@@ -63,7 +77,15 @@ resource "aws_key_pair" "win10" {
   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+GjTVDTutrR6B2kn8L94K1uT48Mnpo1Ht9BYb7gSsLqqgqC+eF+dgYqWYYZVc+K4NxPZKqCfWhiOm0cpAYAuDtljMhnejPGqFgAXYj53cDI2TzuJvde5QDMP9CD1G/xm1aL2bWnjWNl0C7avHpP9VaF0f84ICSqHV/NjoLn8p+zZyi8Z5CSGeUcM/HukNLGcGsudJ9Tx87zEbvJYKI0dE+FEaSyoygxrdEZ5qtqhW++uy+UA1Cd5LO1kn0sbeMh9qtPaT7bVTFO5gD1PjIPw+GK3QKg1fHkKnITy02z35C551qOhaGESZ3Wx0KZO2rlg16pgbjv8pm3uIw2gZ1ysb alexy@DESKTOP-84PV354"
 }
 
-output "public_ip" {
-    value = aws_instance.simple.public_ip
-    description = "The public IP of the created EC2 instance."
+data "aws_vpc" "default" {
+    default = true
 }
+
+data "aws_subnet_ids" "default" {
+    vpc_id = data.aws_vpc.default.id
+}
+
+#output "public_ip" {
+#    value = aws_instance.simple.public_ip
+#    description = "The public IP of the created EC2 instance."
+#}
