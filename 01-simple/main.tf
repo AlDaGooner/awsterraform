@@ -15,7 +15,7 @@ variable "port_ssh" {
 }
 
 resource "aws_instance" "simple" {
-    ami = "ami-076a5bf4a712000ed"
+    ami = "ami-05f65755d328aa341"
     instance_type = "t2.micro"
     vpc_security_group_ids = [ aws_security_group.instance.id ]
     key_name = "win10-key"
